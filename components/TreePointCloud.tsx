@@ -3,17 +3,22 @@ import React, { useMemo, useRef } from "react";
 import * as THREE from "three";
 import { useFrame } from "@react-three/fiber";
 
-export default function TreePointCloud({ handRef }: { handRef: React.MutableRefObject<any> }) {
+export default function TreePointCloud({
+  handRef,
+}: {
+  handRef: React.MutableRefObject<any>;
+}) {
   const count = 10000;
   const pointsRef = useRef<THREE.Points>(null);
 
-  // Store the "Home" positions permanently
-  const initialPositions = useMemo(() => {
+  // 🔒 PERMANENT HOME POSITIONS (NEVER MUTATED)
+  const homePositions = useMemo(() => {
     const pos = new Float32Array(count * 3);
     for (let i = 0; i < count; i++) {
       const h = (Math.random() - 0.5) * 4;
       const radius = Math.max(0.05, 1.0 - (h + 2) * 0.2);
       const theta = Math.random() * Math.PI * 2;
+
       pos[i * 3] = radius * Math.cos(theta);
       pos[i * 3 + 1] = h;
       pos[i * 3 + 2] = radius * Math.sin(theta);
@@ -21,43 +26,51 @@ export default function TreePointCloud({ handRef }: { handRef: React.MutableRefO
     return pos;
   }, []);
 
+  // 🔁 LIVE POSITIONS (THIS ONE MOVES)
+  const livePositions = useMemo(
+    () => new Float32Array(homePositions),
+    [homePositions]
+  );
+
   useFrame((state) => {
     if (!pointsRef.current) return;
 
-    // Access hand data directly from the REF
-    const { x, isPinching } = handRef.current;
-    const positions = pointsRef.current.geometry.attributes.position.array as Float32Array;
-    const time = state.clock.getElapsedTime();
+    const { x = 0, isPinching = false } = handRef.current || {};
+    const positions =
+      pointsRef.current.geometry.attributes.position
+        .array as Float32Array;
 
-    // 1. Rotation Logic (Smoothed)
+    // Smooth rotation
     pointsRef.current.rotation.y = THREE.MathUtils.lerp(
       pointsRef.current.rotation.y,
       x * 0.5,
       0.05
     );
 
-    // 2. Particle Logic
     for (let i = 0; i < count; i++) {
       const i3 = i * 3;
-      const hX = initialPositions[i3];
-      const hY = initialPositions[i3 + 1];
-      const hZ = initialPositions[i3 + 2];
+
+      const hx = homePositions[i3];
+      const hy = homePositions[i3 + 1];
+      const hz = homePositions[i3 + 2];
 
       if (isPinching) {
-        // Spread (Slight Expansion)
-        const spreadFactor = 2.5;
-        positions[i3] = THREE.MathUtils.lerp(positions[i3], hX * spreadFactor, 0.1);
-        positions[i3 + 1] = THREE.MathUtils.lerp(positions[i3 + 1], hY * spreadFactor, 0.1);
-        positions[i3 + 2] = THREE.MathUtils.lerp(positions[i3 + 2], hZ * spreadFactor, 0.1);
+        const spread = 2.5;
+        positions[i3] = THREE.MathUtils.lerp(positions[i3], hx * spread, 0.1);
+        positions[i3 + 1] = THREE.MathUtils.lerp(
+          positions[i3 + 1],
+          hy * spread,
+          0.1
+        );
+        positions[i3 + 2] = THREE.MathUtils.lerp(positions[i3 + 2], hz * spread, 0.1);
       } else {
-        // Return to Home (Tree shape)
-        positions[i3] = THREE.MathUtils.lerp(positions[i3], hX, 0.05);
-        positions[i3 + 1] = THREE.MathUtils.lerp(positions[i3 + 1], hY, 0.05);
-        positions[i3 + 2] = THREE.MathUtils.lerp(positions[i3 + 2], hZ, 0.05);
+        // ✅ RETURNS PERFECTLY
+        positions[i3] = THREE.MathUtils.lerp(positions[i3], hx, 0.08);
+        positions[i3 + 1] = THREE.MathUtils.lerp(positions[i3 + 1], hy, 0.08);
+        positions[i3 + 2] = THREE.MathUtils.lerp(positions[i3 + 2], hz, 0.08);
       }
     }
 
-    // CRITICAL: Tell Three.js the points moved
     pointsRef.current.geometry.attributes.position.needsUpdate = true;
   });
 
@@ -66,11 +79,12 @@ export default function TreePointCloud({ handRef }: { handRef: React.MutableRefO
       <bufferGeometry>
         <bufferAttribute
           attach="attributes-position"
+          array={livePositions}
           count={count}
-          array={initialPositions}
           itemSize={3}
         />
       </bufferGeometry>
+
       <pointsMaterial
         size={0.02}
         color="#ffffff"
