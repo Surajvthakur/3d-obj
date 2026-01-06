@@ -2,6 +2,43 @@
 import React, { useRef, useEffect } from 'react';
 import { useHandTracking } from '../hooks/useHandTracking';
 
+function isFingerExtended(tip: any, pip: any) {
+  return tip.y < pip.y;
+}
+
+function detectGesture(hand: any) {
+  const thumbExtended = isFingerExtended(hand[4], hand[3]);
+  const indexExtended = isFingerExtended(hand[8], hand[6]);
+  const middleExtended = isFingerExtended(hand[12], hand[10]);
+  const ringExtended = isFingerExtended(hand[16], hand[14]);
+  const pinkyExtended = isFingerExtended(hand[20], hand[18]);
+
+  const fingers = [
+    thumbExtended,
+    indexExtended,
+    middleExtended,
+    ringExtended,
+    pinkyExtended,
+  ];
+
+  // 🤏 Pinch
+  const pinchDistance = Math.hypot(
+    hand[4].x - hand[8].x,
+    hand[4].y - hand[8].y,
+    hand[4].z - hand[8].z
+  );
+
+  if (pinchDistance < 0.07) return "PINCH";
+
+  // ✊ Fist
+  if (fingers.every((f) => !f)) return "FIST";
+
+  // ✋ Open hand
+  if (fingers.every((f) => f)) return "OPEN";
+
+  return "UNKNOWN";
+}
+
 export default function HandTracker({ onHandUpdate }: { onHandUpdate: (data: any) => void }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const landmarker = useHandTracking();
@@ -32,11 +69,13 @@ export default function HandTracker({ onHandUpdate }: { onHandUpdate: (data: any
             Math.pow(thumb.z - index.z, 2)
           );
 
+          const gesture = detectGesture(hand);
+
           onHandUpdate({
-            x: index.x, // Horizontal position
-            y: index.y, // Vertical position
-            z: index.z, // Depth
-            isPinching: distance < 0.08 // Adjusted threshold for better sensitivity
+            x: index.x,
+            y: index.y,
+            z: index.z,
+            gesture,
           });
         }
         requestAnimationFrame(predictWebcam);

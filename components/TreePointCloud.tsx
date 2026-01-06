@@ -35,7 +35,8 @@ export default function TreePointCloud({
   useFrame((state) => {
     if (!pointsRef.current) return;
 
-    const { x = 0, isPinching = false } = handRef.current || {};
+    const { x = 0, gesture = "OPEN" } = handRef.current || {};
+
     const positions =
       pointsRef.current.geometry.attributes.position
         .array as Float32Array;
@@ -49,27 +50,31 @@ export default function TreePointCloud({
 
     for (let i = 0; i < count; i++) {
       const i3 = i * 3;
-
       const hx = homePositions[i3];
       const hy = homePositions[i3 + 1];
       const hz = homePositions[i3 + 2];
-
-      if (isPinching) {
+    
+      if (gesture === "PINCH") {
+        // 🌸 Bloom / Spread
         const spread = 2.5;
         positions[i3] = THREE.MathUtils.lerp(positions[i3], hx * spread, 0.1);
-        positions[i3 + 1] = THREE.MathUtils.lerp(
-          positions[i3 + 1],
-          hy * spread,
-          0.1
-        );
+        positions[i3 + 1] = THREE.MathUtils.lerp(positions[i3 + 1], hy * spread, 0.1);
         positions[i3 + 2] = THREE.MathUtils.lerp(positions[i3 + 2], hz * spread, 0.1);
+    
+      } else if (gesture === "FIST") {
+        // 🧲 Collapse to core
+        positions[i3] = THREE.MathUtils.lerp(positions[i3], 0, 0.15);
+        positions[i3 + 1] = THREE.MathUtils.lerp(positions[i3 + 1], 0, 0.15);
+        positions[i3 + 2] = THREE.MathUtils.lerp(positions[i3 + 2], 0, 0.15);
+    
       } else {
-        // ✅ RETURNS PERFECTLY
-        positions[i3] = THREE.MathUtils.lerp(positions[i3], hx, 0.08);
-        positions[i3 + 1] = THREE.MathUtils.lerp(positions[i3 + 1], hy, 0.08);
-        positions[i3 + 2] = THREE.MathUtils.lerp(positions[i3 + 2], hz, 0.08);
+        // 🌲 Natural return
+        positions[i3] = THREE.MathUtils.lerp(positions[i3], hx, 0.06);
+        positions[i3 + 1] = THREE.MathUtils.lerp(positions[i3 + 1], hy, 0.06);
+        positions[i3 + 2] = THREE.MathUtils.lerp(positions[i3 + 2], hz, 0.06);
       }
     }
+    
 
     pointsRef.current.geometry.attributes.position.needsUpdate = true;
   });
