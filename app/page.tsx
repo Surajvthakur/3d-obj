@@ -6,21 +6,12 @@ import HandTracker from "@/components/HandTracker";
 import TreePointCloud from "@/components/TreePointCloud"
 import { EffectComposer, Bloom, Noise, Vignette } from "@react-three/postprocessing";
 
-// This is a temporary 3D object to test tracking
-function TestCube({ position, isPinching }: { position: [number, number, number], isPinching: boolean }) {
-  return (
-    <mesh position={position}>
-      <boxGeometry args={[0.5, 0.5, 0.5]} />
-      <meshStandardMaterial color={isPinching ? "#00ff00" : "#ff0000"} />
-    </mesh>
-  );
-}
 
 export default function Home() {
-  const [handData, setHandData] = useState({ x: 0, y: 0, z: 0, isPinching: false });
+  const [handData, setHandData] = useState({ x: 0, y: 0, z: 0, gesture: "UNKNOWN", rawGesture: "UNKNOWN" });
 
   // Handle the hand coordinates coming from Task 1.2
-  const handRef = useRef({ x: 0, y: 0, z: 0, isPinching: false });
+  const handRef = useRef({ x: 0, y: 0, z: 0, gesture: "UNKNOWN" });
 
   const handleHandUpdate = (data: any) => {
     // 1. Update the UI state for the debug overlay
@@ -33,7 +24,7 @@ export default function Home() {
       x: (data.x - 0.5) * 10,  // Removed negation to match natural movement
       y: (data.y - 0.5) * -10, // Keep Y negated because 0 is Top in web, but +Y is Up in 3D
       z: data.z * -10,
-      isPinching: data.isPinching
+      gesture: data.gesture
     };
   };
 
@@ -75,10 +66,21 @@ export default function Home() {
       {/* 3. UI Overlay */}
       <div className="absolute top-10 left-10 text-white font-mono pointer-events-none">
         <h1 className="text-2xl font-bold">PHASE 1: HAND CALIBRATION</h1>
-        <p>Pinch fingers to turn cube GREEN</p>
+        <p>Pinch fingers to spread tree • Make fist to collapse • Open hand for natural</p>
         <p>X: {handData.x.toFixed(2)} | Y: {handData.y.toFixed(2)}</p>
-        <p className={`font-bold ${handData.isPinching ? 'text-green-500' : 'text-red-500'}`}>
-          PINCH: {handData.isPinching ? 'YES' : 'NO'}
+        <p className={`font-bold ${
+          handData.gesture === 'PINCH' ? 'text-blue-500' :
+          handData.gesture === 'FIST' ? 'text-red-500' :
+          handData.gesture === 'OPEN' ? 'text-green-500' :
+          'text-yellow-500'
+        }`}>
+          GESTURE: {handData.gesture || 'UNKNOWN'}
+        </p>
+        <p className="text-sm text-gray-400">
+          Raw: {handData.rawGesture || 'UNKNOWN'} | Stable: {handData.gesture || 'UNKNOWN'}
+        </p>
+        <p className="text-sm text-gray-400 mt-2">
+          Debug: Make a tight fist with all fingers curled toward palm
         </p>
       </div>
     </main>
