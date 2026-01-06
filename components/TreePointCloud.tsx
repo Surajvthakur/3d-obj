@@ -3,60 +3,62 @@ import React, { useMemo, useRef } from "react";
 import * as THREE from "three";
 import { useFrame } from "@react-three/fiber";
 
-export default function TreePointCloud({ handPos, isPinching }: { handPos: any, isPinching: boolean }) {
-  const count = 15000; 
+export default function TreePointCloud({ handRef }: { handRef: React.MutableRefObject<any> }) {
+  const count = 10000;
   const pointsRef = useRef<THREE.Points>(null);
-  
-  // Create a "target" rotation object to smooth out movements
-  const targetRotation = useRef({ y: 0, x: 0 });
 
-  const [particles] = useMemo(() => {
-    const positions = new Float32Array(count * 3);
+  // Store the "Home" positions permanently
+  const initialPositions = useMemo(() => {
+    const pos = new Float32Array(count * 3);
     for (let i = 0; i < count; i++) {
-      // Basic Fractal Tree Math
-      const section = Math.floor(i / (count / 5)); // 5 sections of the tree
-      const y = (i / count) * 6 - 3; // Height from -3 to 3
-      
-      // As height (y) increases, branches spread out more
-      const spread = (y + 3) * 0.5; 
-      const angle = i * 0.2;
-      
-      positions[i * 3] = Math.cos(angle) * Math.random() * spread;
-      positions[i * 3 + 1] = y;
-      positions[i * 3 + 2] = Math.sin(angle) * Math.random() * spread;
+      const h = (Math.random() - 0.5) * 4;
+      const radius = Math.max(0.05, 1.0 - (h + 2) * 0.2); 
+      const theta = Math.random() * Math.PI * 2;
+      pos[i * 3] = radius * Math.cos(theta);
+      pos[i * 3 + 1] = h;
+      pos[i * 3 + 2] = radius * Math.sin(theta);
     }
-    return [positions];
+    return pos;
   }, []);
 
   useFrame((state) => {
     if (!pointsRef.current) return;
 
-    // 1. SMOOTH ROTATION (Lerp)
-    // Instead of +=, we target a specific angle based on hand X
-    // HandPos.x is roughly -5 to 5, so we map that to a rotation
-    const targetY = handPos.x * 0.5; 
-    
-    // Smoothly move current rotation towards target (0.1 is the smoothing factor)
+    // Access hand data directly from the REF
+    const { x, isPinching } = handRef.current;
+    const positions = pointsRef.current.geometry.attributes.position.array as Float32Array;
+    const time = state.clock.getElapsedTime();
+
+    // 1. Rotation Logic (Smoothed)
     pointsRef.current.rotation.y = THREE.MathUtils.lerp(
-      pointsRef.current.rotation.y,
-      targetY,
-      0.1
+      pointsRef.current.rotation.y, 
+      x * 0.5, 
+      0.05
     );
 
-    // 2. DISINTEGRATION EFFECT
-    const positions = pointsRef.current.geometry.attributes.position.array as Float32Array;
-    
+    // 2. Particle Logic
     for (let i = 0; i < count; i++) {
       const i3 = i * 3;
-      if (!isPinching) {
-        // Slow "float away" effect
-        positions[i3] += Math.sin(state.clock.elapsedTime * 0.5 + i) * 0.003;
-        positions[i3 + 1] += Math.cos(state.clock.elapsedTime * 0.5 + i) * 0.003;
-        pointsRef.current.geometry.attributes.position.needsUpdate = true;
+      const hX = initialPositions[i3];
+      const hY = initialPositions[i3 + 1];
+      const hZ = initialPositions[i3 + 2];
+
+      if (isPinching) {
+        // Return to Home
+        positions[i3] = THREE.MathUtils.lerp(positions[i3], hX, 0.1);
+        positions[i3 + 1] = THREE.MathUtils.lerp(positions[i3 + 1], hY, 0.1);
+        positions[i3 + 2] = THREE.MathUtils.lerp(positions[i3 + 2], hZ, 0.1);
       } else {
-        // Optional: Slowly pull points back to original positions here
+        // Slow Drifting
+        const drift = Math.sin(time * 0.5 + i) * 0.2;
+        positions[i3] = THREE.MathUtils.lerp(positions[i3], hX + drift, 0.02);
+        positions[i3 + 1] = THREE.MathUtils.lerp(positions[i3 + 1], hY + drift, 0.02);
+        positions[i3 + 2] = THREE.MathUtils.lerp(positions[i3 + 2], hZ + drift, 0.02);
       }
     }
+    
+    // CRITICAL: Tell Three.js the points moved
+    pointsRef.current.geometry.attributes.position.needsUpdate = true;
   });
 
   return (
@@ -64,17 +66,17 @@ export default function TreePointCloud({ handPos, isPinching }: { handPos: any, 
       <bufferGeometry>
         <bufferAttribute
           attach="attributes-position"
-          count={particles.length / 3}
-          array={particles}
+          count={count}
+          array={initialPositions.slice()}
           itemSize={3}
         />
       </bufferGeometry>
       <pointsMaterial 
-        size={0.012} 
+        size={0.02} 
         color="#ffffff" 
         transparent 
-        opacity={0.6} 
-        blending={THREE.AdditiveBlending} // This makes it "glow" when dots overlap
+        opacity={0.8} 
+        blending={THREE.AdditiveBlending}
         depthWrite={false}
       />
     </points>
