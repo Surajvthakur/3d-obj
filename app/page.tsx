@@ -77,6 +77,9 @@ export default function Home() {
         <h1 className="text-2xl font-bold">PHASE 1: HAND CALIBRATION</h1>
         <p>Pinch fingers to turn cube GREEN</p>
         <p>X: {handData.x.toFixed(2)} | Y: {handData.y.toFixed(2)}</p>
+        <p className={`font-bold ${handData.isPinching ? 'text-green-500' : 'text-red-500'}`}>
+          PINCH: {handData.isPinching ? 'YES' : 'NO'}
+        </p>
       </div>
     </main>
   );
