@@ -12,7 +12,7 @@ export default function TreePointCloud({ handRef }: { handRef: React.MutableRefO
     const pos = new Float32Array(count * 3);
     for (let i = 0; i < count; i++) {
       const h = (Math.random() - 0.5) * 4;
-      const radius = Math.max(0.05, 1.0 - (h + 2) * 0.2); 
+      const radius = Math.max(0.05, 1.0 - (h + 2) * 0.2);
       const theta = Math.random() * Math.PI * 2;
       pos[i * 3] = radius * Math.cos(theta);
       pos[i * 3 + 1] = h;
@@ -31,8 +31,8 @@ export default function TreePointCloud({ handRef }: { handRef: React.MutableRefO
 
     // 1. Rotation Logic (Smoothed)
     pointsRef.current.rotation.y = THREE.MathUtils.lerp(
-      pointsRef.current.rotation.y, 
-      x * 0.5, 
+      pointsRef.current.rotation.y,
+      x * 0.5,
       0.05
     );
 
@@ -56,7 +56,7 @@ export default function TreePointCloud({ handRef }: { handRef: React.MutableRefO
         positions[i3 + 2] = THREE.MathUtils.lerp(positions[i3 + 2], hZ + drift, 0.02);
       }
     }
-    
+
     // CRITICAL: Tell Three.js the points moved
     pointsRef.current.geometry.attributes.position.needsUpdate = true;
   });
@@ -67,15 +67,15 @@ export default function TreePointCloud({ handRef }: { handRef: React.MutableRefO
         <bufferAttribute
           attach="attributes-position"
           count={count}
-          array={initialPositions.slice()}
+          array={initialPositions}
           itemSize={3}
         />
       </bufferGeometry>
-      <pointsMaterial 
-        size={0.02} 
-        color="#ffffff" 
-        transparent 
-        opacity={0.8} 
+      <pointsMaterial
+        size={0.02}
+        color="#ffffff"
+        transparent
+        opacity={0.8}
         blending={THREE.AdditiveBlending}
         depthWrite={false}
       />
