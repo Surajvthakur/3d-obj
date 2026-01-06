@@ -44,16 +44,16 @@ export default function TreePointCloud({ handRef }: { handRef: React.MutableRefO
       const hZ = initialPositions[i3 + 2];
 
       if (isPinching) {
-        // Return to Home
-        positions[i3] = THREE.MathUtils.lerp(positions[i3], hX, 0.1);
-        positions[i3 + 1] = THREE.MathUtils.lerp(positions[i3 + 1], hY, 0.1);
-        positions[i3 + 2] = THREE.MathUtils.lerp(positions[i3 + 2], hZ, 0.1);
+        // Spread (Slight Expansion)
+        const spreadFactor = 2.5;
+        positions[i3] = THREE.MathUtils.lerp(positions[i3], hX * spreadFactor, 0.1);
+        positions[i3 + 1] = THREE.MathUtils.lerp(positions[i3 + 1], hY * spreadFactor, 0.1);
+        positions[i3 + 2] = THREE.MathUtils.lerp(positions[i3 + 2], hZ * spreadFactor, 0.1);
       } else {
-        // Slow Drifting
-        const drift = Math.sin(time * 0.5 + i) * 0.2;
-        positions[i3] = THREE.MathUtils.lerp(positions[i3], hX + drift, 0.02);
-        positions[i3 + 1] = THREE.MathUtils.lerp(positions[i3 + 1], hY + drift, 0.02);
-        positions[i3 + 2] = THREE.MathUtils.lerp(positions[i3 + 2], hZ + drift, 0.02);
+        // Return to Home (Tree shape)
+        positions[i3] = THREE.MathUtils.lerp(positions[i3], hX, 0.05);
+        positions[i3 + 1] = THREE.MathUtils.lerp(positions[i3 + 1], hY, 0.05);
+        positions[i3 + 2] = THREE.MathUtils.lerp(positions[i3 + 2], hZ, 0.05);
       }
     }
 
